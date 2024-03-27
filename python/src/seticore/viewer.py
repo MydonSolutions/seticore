@@ -1,21 +1,19 @@
-import matplotlib
-matplotlib.rc("figure", max_open_warning=0)
-from matplotlib import pyplot as plt
-
-import capnp
-capnp.remove_import_hook()
+try:
+    import matplotlib
+    matplotlib.rc("figure", max_open_warning=0)
+except ImportError:
+    matplotlib = None
 
 import h5py
 import math
 import numpy as np
 import os
-import pandas as pd
 import traceback
 
-from importlib_resources import files as package_files
+from seticore import hit_capnp, stamp_capnp
 
-hit_capnp = capnp.load(str(package_files('seticore.schema').joinpath("hit.capnp")))
-stamp_capnp = capnp.load(str(package_files('seticore.schema').joinpath("stamp.capnp")))
+def _import_matplotlib():
+    from matplotlib import pyplot as plt
 
 def read_hits(filepath):
     with open(filepath) as f:
@@ -31,6 +29,7 @@ def beam_name(hit):
 
 def plot_array(arr, cmap="viridis"):
     # TODO: decide size intelligently
+    _import_matplotlib()
     fig, ax = plt.subplots(figsize=(10, 2), dpi=300)
     ax.imshow(arr, rasterized=True, interpolation="nearest", cmap=cmap, aspect="auto")
     return fig, ax
@@ -434,6 +433,7 @@ class Stamp(object):
         nants = self.stamp.numAntennas
         print("median correlation:", np.median(corr))
         size = 15
+        _import_matplotlib()
         fig, ax = plt.subplots(figsize=(size, size))
         ax.imshow(corr, rasterized=True, interpolation="nearest", cmap="plasma", vmin=0)
         ax.set_yticks(list(range(nants)))

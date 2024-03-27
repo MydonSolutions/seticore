@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "seticore"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
   { name="Kevin Lacker", email="lacker@gmail.com" },
 ]
@@ -18,10 +18,8 @@ classifiers = [
 ]
 dependencies = [
   "pycapnp",
-  "matplotlib",
   "h5py",
   "numpy",
-  "pandas",
   "importlib_resources"
 ]
 
