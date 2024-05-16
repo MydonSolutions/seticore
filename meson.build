@@ -3,6 +3,7 @@ project('seticore', ['cpp', 'c', 'cuda'],
             'buildtype=release',
             'cpp_std=c++14',
             'werror=true',
+            'default_library=static'
         ])
 
 basic_cuda_args = [ '--std=c++14' ]
@@ -18,7 +19,12 @@ endif
 
 cmake = import('cmake')
 fmt_subproj = cmake.subproject('fmt')		
-fmt_dep = fmt_subproj.dependency('fmt')
+fmt_dep = dependency(
+    'fmt',
+    default_options: [
+        'default_library='+get_option('default_library')
+    ]
+)
 
 boost_dep = dependency('boost', modules: [
     'filesystem',
@@ -39,6 +45,8 @@ kj_dep = capnp_subproj.dependency('kj')
 capnp_dep = capnp_subproj.dependency('capnp')
 
 deps = [fmt_dep, boost_dep, hdf5_dep, cuda_dep, kj_dep, capnp_dep]
+
+incs = [include_directories('.'), include_directories('raw')]
 
 srcs = [
     'beamformer.cu',
@@ -86,7 +94,7 @@ tests = [
 ]
 
 
-libseticore = static_library('seticore', srcs, dependencies: deps, cuda_args: cuda_args)
+libseticore = library('seticore', srcs, dependencies: deps, cuda_args: cuda_args)
 
 # The main binaries
 
