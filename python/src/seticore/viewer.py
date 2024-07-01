@@ -1,6 +1,7 @@
 try:
     import matplotlib
     matplotlib.rc("figure", max_open_warning=0)
+    from matplotlib import pyplot as plt
 except ImportError:
     matplotlib = None
 
@@ -62,7 +63,8 @@ def plot_multiple(named_waterfalls):
     else:
         cols = 12
     rows = math.ceil(len(named_waterfalls) / cols)
-    fig, axs = plt.subplots(rows, cols, figsize=(cols*4, rows*3), dpi=300)
+    _import_matplotlib()
+    fig, axs = plt.subplots(rows, cols, figsize=(cols*4, rows*3), squeeze=False, dpi=300)
     for i in range(rows * cols):
         row = i // cols
         col = i % cols
@@ -78,17 +80,7 @@ def plot_multiple(named_waterfalls):
     fig.tight_layout()
     fig.subplots_adjust(hspace=0.8)
     return fig, axs
-
-def show_multiple(named_waterfalls):
-    """
-    Show multiple waterfalls.
-
-    named_waterfalls is a list of (name, waterfall).
-    waterfall is an array indexed like [time, chan]
-    """
-    fig, axs = plot_multiple(named_waterfalls)
-    plt.show()
-    plt.close()
+    
 
 def round_up_power_of_two(n):
     assert n >= 1
@@ -184,12 +176,59 @@ class Stamp(object):
         real = self.real_array()
         return real[:, :, :, :, 0] + 1.0j * real[:, :, :, :, 1]
 
-    def show_classic_incoherent(self):
+    def show_classic_incoherent(self, title=None, show_signal=False):
         incoherent = np.square(self.real_array()).sum(axis=(2, 3, 4))
         snr, sig = self.snr_and_signal(incoherent)
         print(f"recalculated power: {sig:e}")
         print("local SNR:", snr)
-        show_array(incoherent)
+
+        # Plot the array
+        fig, ax = plot_array(incoherent)
+
+        # Add good plot tick marks and labels
+        yticks = ax.get_yticks()
+        ax.set_yticklabels([
+            f"{tick*self.stamp.tsamp*1e3:0.3f}"
+            for tick in yticks
+        ])
+        ax.set_ylabel("ms")
+        xticks = ax.get_xticks()
+        ax.set_xticklabels([
+            f"{(tick*self.stamp.foff*1000):0.1f}"
+            for tick in xticks
+        ])
+        ax.set_xlabel(f"Frequency (kHz + {self.stamp.fch1:0.6f} MHz)")
+
+        # Plot detected signal if given
+        if show_signal and (ax.axison):
+            frequency = self.stamp.signal.frequency
+            drift_rate = self.stamp.signal.driftRate
+            # Figure out where the frequency is in plot coordinates
+            # plot_width = self.stamp.numChannels * self.stamp.foff
+            plot_frequency_x = ((frequency - self.stamp.fch1)) / self.stamp.foff
+            if drift_rate == 0:
+                # Plot vertical line
+                ax.axvline(plot_frequency_x, color='red', dashes=[1, 1, 1, 1], zorder=10000) # frequency in MHz, convert to KHz
+                ax.plot()
+            else:
+                # find the frequency limits
+                max_time_s = self.stamp.tsamp * self.stamp.numTimesteps
+                # xaxis = np.linspace(plot_frequency_x, plot_frequency_x + (drift_rate * 1e6 / self.stamp.foff) * max_time_s, num=4)
+                xaxis = np.linspace(plot_frequency_x, plot_frequency_x + self.stamp.signal.driftSteps, num=4)
+                yaxis = np.linspace(0, self.stamp.numTimesteps - 1, num=4)
+                ax.plot(xaxis, yaxis, color='red', dashes=[1, 1, 1, 1], zorder=10000)
+        else:
+            ax.plot()
+        
+        # Plot a title if one is provided
+        if title != None:
+            plt.title(title)
+
+        plt.show()
+        plt.close()
+
+        
+
 
     def weighted_incoherent(self):
         # Start off like we're beamforming beam 0
@@ -203,12 +242,55 @@ class Stamp(object):
         # Then sum along polarization and antenna
         return power.sum(axis=(2, 3))
 
-    def show_weighted_incoherent(self):
+    def show_weighted_incoherent(self, title=None, show_signal=False):
         incoherent = self.weighted_incoherent()
         snr, sig = self.snr_and_signal(incoherent)
         print(f"recalculated power: {sig:e}")
         print("local SNR:", snr)
-        show_array(incoherent)
+        # Plot the array
+        fig, ax = plot_array(incoherent)
+
+        # Add good plot tick marks and labels
+        yticks = ax.get_yticks()
+        ax.set_yticklabels([
+            f"{tick*self.stamp.tsamp*1e3:0.3f}"
+            for tick in yticks
+        ])
+        ax.set_ylabel("ms")
+        xticks = ax.get_xticks()
+        ax.set_xticklabels([
+            f"{(tick*self.stamp.foff*1000):0.1f}"
+            for tick in xticks
+        ])
+        ax.set_xlabel(f"Frequency (kHz + {self.stamp.fch1:0.6f} MHz)")
+
+        # Plot detected signal if given
+        if show_signal and (ax.axison):
+            frequency = self.stamp.signal.frequency
+            drift_rate = self.stamp.signal.driftRate
+            # Figure out where the frequency is in plot coordinates
+            # plot_width = self.stamp.numChannels * self.stamp.foff
+            plot_frequency_x = ((frequency - self.stamp.fch1)) / self.stamp.foff
+            if drift_rate == 0:
+                # Plot vertical line
+                ax.axvline(plot_frequency_x, color='red', dashes=[1, 1, 1, 1], zorder=10000) # frequency in MHz, convert to KHz
+                ax.plot()
+            else:
+                # find the frequency limits
+                max_time_s = self.stamp.tsamp * self.stamp.numTimesteps
+                # xaxis = np.linspace(plot_frequency_x, plot_frequency_x + (drift_rate * 1e6 / self.stamp.foff) * max_time_s, num=4)
+                xaxis = np.linspace(plot_frequency_x, plot_frequency_x + self.stamp.signal.driftSteps, num=4)
+                yaxis = np.linspace(0, self.stamp.numTimesteps - 1, num=4)
+                ax.plot(xaxis, yaxis, color='red', dashes=[1, 1, 1, 1], zorder=10000)
+        else:
+            ax.plot()
+        
+        # Plot a title if one is provided
+        if title != None:
+            plt.title(title)
+
+        plt.show()
+        plt.close()
     
     def show_antenna(self, index):
         voltages = self.real_array()[:, :, :, index, :]
@@ -232,7 +314,8 @@ class Stamp(object):
         display(fig)
         plt.close()
 
-    def show_antennas(self):
+    # Title is a string for the whole plot
+    def show_antennas(self, title=None, show_signal=False):
         antennas = np.square(self.real_array()).sum(axis=(2, 4))
         antenna_titles = [f"antenna {i}" for i in range(self.stamp.numAntennas)]
         if self.recipe is not None:
@@ -244,7 +327,7 @@ class Stamp(object):
         for ax_r in range(axs.shape[0]):
             for ax_c in range(axs.shape[1]):
                 ax = axs[ax_r, ax_c]
-                    
+
                 yticks = ax.get_yticks()
                 if ax_c == 0:
                     ax.set_yticklabels([
@@ -261,7 +344,32 @@ class Stamp(object):
                     for tick in xticks
                 ])
                 ax.set_xlabel(f"Frequency (kHz + {self.stamp.fch1:0.6f} MHz)")
+
+                # Plot detected signal if given
+                if show_signal and (ax.axison):
+                    frequency = self.stamp.signal.frequency
+                    drift_rate = self.stamp.signal.driftRate
+                    # Figure out where the frequency is in plot coordinates
+                    # plot_width = self.stamp.numChannels * self.stamp.foff
+                    plot_frequency_x = ((frequency - self.stamp.fch1)) / self.stamp.foff
+                    if drift_rate == 0:
+                        # Plot vertical line
+                        ax.axvline(plot_frequency_x, color='red', dashes=[1, 1, 1, 1], zorder=10000) # frequency in MHz, convert to KHz
+                        ax.plot()
+                    else:
+                        # find the frequency limits
+                        max_time_s = self.stamp.tsamp * self.stamp.numTimesteps
+                        # xaxis = np.linspace(plot_frequency_x, plot_frequency_x + (drift_rate * 1e6 / self.stamp.foff) * max_time_s, num=4)
+                        xaxis = np.linspace(plot_frequency_x, plot_frequency_x + self.stamp.signal.driftSteps, num=4)
+                        yaxis = np.linspace(0, self.stamp.numTimesteps - 1, num=4)
+                        ax.plot(xaxis, yaxis, color='red', dashes=[1, 1, 1, 1], zorder=10000)
+                else:
+                    ax.plot()
         
+        # Plot a title if one is provided
+        if title != None:
+            plt.title(title)
+
         plt.show()
         plt.close()
 
@@ -321,12 +429,55 @@ class Stamp(object):
         squared = np.square(np.real(voltage)) + np.square(np.imag(voltage))
         return squared.sum(axis=2)
 
-    def show_beam(self, beam):
+    def show_beam(self, beam, title=None, show_signal=False):
         power = self.beamform_power(beam)
         snr, sig = self.snr_and_signal(power)
         print(f"recalculated power: {sig:e}")
         print("local SNR:", snr)
-        show_array(power)
+        # Plot the array
+        fig, ax = plot_array(power)
+
+        # Add good plot tick marks and labels
+        yticks = ax.get_yticks()
+        ax.set_yticklabels([
+            f"{tick*self.stamp.tsamp*1e3:0.3f}"
+            for tick in yticks
+        ])
+        ax.set_ylabel("ms")
+        xticks = ax.get_xticks()
+        ax.set_xticklabels([
+            f"{(tick*self.stamp.foff*1000):0.1f}"
+            for tick in xticks
+        ])
+        ax.set_xlabel(f"Frequency (kHz + {self.stamp.fch1:0.6f} MHz)")
+
+        # Plot detected signal if given
+        if show_signal and (ax.axison):
+            frequency = self.stamp.signal.frequency
+            drift_rate = self.stamp.signal.driftRate
+            # Figure out where the frequency is in plot coordinates
+            # plot_width = self.stamp.numChannels * self.stamp.foff
+            plot_frequency_x = ((frequency - self.stamp.fch1)) / self.stamp.foff
+            if drift_rate == 0:
+                # Plot vertical line
+                ax.axvline(plot_frequency_x, color='red', dashes=[1, 1, 1, 1], zorder=10000) # frequency in MHz, convert to KHz
+                ax.plot()
+            else:
+                # find the frequency limits
+                max_time_s = self.stamp.tsamp * self.stamp.numTimesteps
+                # xaxis = np.linspace(plot_frequency_x, plot_frequency_x + (drift_rate * 1e6 / self.stamp.foff) * max_time_s, num=4)
+                xaxis = np.linspace(plot_frequency_x, plot_frequency_x + self.stamp.signal.driftSteps, num=4)
+                yaxis = np.linspace(0, self.stamp.numTimesteps - 1, num=4)
+                ax.plot(xaxis, yaxis, color='red', dashes=[1, 1, 1, 1], zorder=10000)
+        else:
+            ax.plot()
+        
+        # Plot a title if one is provided
+        if title != None:
+            plt.title(title)
+
+        plt.show()
+        plt.close()
 
     def show_best_beam(self):
         beam = self.stamp.signal.beam
@@ -341,14 +492,64 @@ class Stamp(object):
         print("original SNR:", self.stamp.signal.snr)
         self.show_beam(beam)
 
-    def show_beams(self):
+    def show_beams(self, title=None, show_signal=False):
         charts = []
         for beam in range(self.recipe.nbeams):
             power = self.beamform_power(beam)
             snr = self.snr(power)
             charts.append((f"beam {beam}, snr {snr:.1f}", power))
-        show_multiple(charts)
+        
+        fig, axs = plot_multiple(charts)
 
+        for ax_r in range(axs.shape[0]):
+            for ax_c in range(axs.shape[1]):
+                ax = axs[ax_r, ax_c]
+
+                yticks = ax.get_yticks()
+                if ax_c == 0:
+                    ax.set_yticklabels([
+                        f"{tick*self.stamp.tsamp*1e3:0.3f}"
+                        for tick in yticks
+                    ])
+                    ax.set_ylabel("ms")
+                else:
+                    ax.set_yticklabels([])
+                
+                xticks = ax.get_xticks()
+                ax.set_xticklabels([
+                    f"{(tick*self.stamp.foff*1000):0.1f}"
+                    for tick in xticks
+                ])
+                ax.set_xlabel(f"Frequency (kHz + {self.stamp.fch1:0.6f} MHz)")
+
+                # Plot detected signal if given
+                if show_signal and (ax.axison):
+                    frequency = self.stamp.signal.frequency
+                    drift_rate = self.stamp.signal.driftRate
+                    # Figure out where the frequency is in plot coordinates
+                    # plot_width = self.stamp.numChannels * self.stamp.foff
+                    plot_frequency_x = ((frequency - self.stamp.fch1)) / self.stamp.foff
+                    if drift_rate == 0:
+                        # Plot vertical line
+                        ax.axvline(plot_frequency_x, color='red', dashes=[1, 1, 1, 1], zorder=10000) # frequency in MHz, convert to KHz
+                        ax.plot()
+                    else:
+                        # find the frequency limits
+                        max_time_s = self.stamp.tsamp * self.stamp.numTimesteps
+                        # xaxis = np.linspace(plot_frequency_x, plot_frequency_x + (drift_rate * 1e6 / self.stamp.foff) * max_time_s, num=4)
+                        xaxis = np.linspace(plot_frequency_x, plot_frequency_x + self.stamp.signal.driftSteps, num=4)
+                        yaxis = np.linspace(0, self.stamp.numTimesteps - 1, num=4)
+                        ax.plot(xaxis, yaxis, color='red', dashes=[1, 1, 1, 1], zorder=10000)
+                else:
+                    ax.plot()
+        
+        # Plot a title if one is provided
+        if title != None:
+            plt.title(title)
+
+        plt.show()
+        plt.close()
+        
     def signal_mask(self):
         """A bool array flagging which spots are the signal we detected"""
         # We currently don't handle STI
@@ -380,7 +581,7 @@ class Stamp(object):
         return ((signal - mean) / std, signal)
 
     def snr(self, data):
-        snr, _ = self.snr_and_signal()
+        snr, _ = self.snr_and_signal(data)
         return snr
 
     def masked_antenna_values(self):
