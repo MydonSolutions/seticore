@@ -176,7 +176,7 @@ class Stamp(object):
         real = self.real_array()
         return real[:, :, :, :, 0] + 1.0j * real[:, :, :, :, 1]
 
-    def show_classic_incoherent(self, title=None, show_signal=False):
+    def show_classic_incoherent(self, title=None, show_signal=False, save_to=None):
         incoherent = np.square(self.real_array()).sum(axis=(2, 3, 4))
         snr, sig = self.snr_and_signal(incoherent)
         print(f"recalculated power: {sig:e}")
@@ -224,7 +224,11 @@ class Stamp(object):
         if title != None:
             plt.title(title)
 
-        plt.show()
+        # Save figure to file if selected
+        if save_to == None:
+            plt.show()
+        else:
+            plt.savefig(save_to)
         plt.close()
 
         
@@ -242,7 +246,7 @@ class Stamp(object):
         # Then sum along polarization and antenna
         return power.sum(axis=(2, 3))
 
-    def show_weighted_incoherent(self, title=None, show_signal=False):
+    def show_weighted_incoherent(self, title=None, show_signal=False, save_to=None):
         incoherent = self.weighted_incoherent()
         snr, sig = self.snr_and_signal(incoherent)
         print(f"recalculated power: {sig:e}")
@@ -289,7 +293,11 @@ class Stamp(object):
         if title != None:
             plt.title(title)
 
-        plt.show()
+        # Save figure to file if selected
+        if save_to == None:
+            plt.show()
+        else:
+            plt.savefig(save_to)
         plt.close()
     
     def show_antenna(self, index):
@@ -315,7 +323,7 @@ class Stamp(object):
         plt.close()
 
     # Title is a string for the whole plot
-    def show_antennas(self, title=None, show_signal=False):
+    def show_antennas(self, title=None, show_signal=False, save_to=None):
         antennas = np.square(self.real_array()).sum(axis=(2, 4))
         antenna_titles = [f"antenna {i}" for i in range(self.stamp.numAntennas)]
         if self.recipe is not None:
@@ -370,7 +378,11 @@ class Stamp(object):
         if title != None:
             plt.title(title)
 
-        plt.show()
+        # Save figure to file if selected
+        if save_to == None:
+            plt.show()
+        else:
+            plt.savefig(save_to)
         plt.close()
 
     def times(self):
@@ -429,7 +441,7 @@ class Stamp(object):
         squared = np.square(np.real(voltage)) + np.square(np.imag(voltage))
         return squared.sum(axis=2)
 
-    def show_beam(self, beam, title=None, show_signal=False):
+    def show_beam(self, beam, title=None, show_signal=False, save_to=None):
         power = self.beamform_power(beam)
         snr, sig = self.snr_and_signal(power)
         print(f"recalculated power: {sig:e}")
@@ -476,7 +488,11 @@ class Stamp(object):
         if title != None:
             plt.title(title)
 
-        plt.show()
+        # Save figure to file if selected
+        if save_to == None:
+            plt.show()
+        else:
+            plt.savefig(save_to)
         plt.close()
 
     def show_best_beam(self):
@@ -492,7 +508,7 @@ class Stamp(object):
         print("original SNR:", self.stamp.signal.snr)
         self.show_beam(beam)
 
-    def show_beams(self, title=None, show_signal=False):
+    def show_beams(self, title=None, show_signal=False, save_to=None):
         charts = []
         for beam in range(self.recipe.nbeams):
             power = self.beamform_power(beam)
@@ -547,7 +563,11 @@ class Stamp(object):
         if title != None:
             plt.title(title)
 
-        plt.show()
+        # Save figure to file if selected
+        if save_to == None:
+            plt.show()
+        else:
+            plt.savefig(save_to)
         plt.close()
         
     def signal_mask(self):
