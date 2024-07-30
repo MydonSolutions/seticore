@@ -300,7 +300,7 @@ class Stamp(object):
             plt.savefig(save_to)
         plt.close()
     
-    def show_antenna(self, index):
+    def show_antenna(self, index, title=None, save_to=None):
         voltages = self.real_array()[:, :, :, index, :]
         powers = np.square(voltages).sum(axis=(2, 3))
         fig, ax = plot_array(powers)
@@ -319,7 +319,15 @@ class Stamp(object):
         ])
         ax.set_xlabel("Frequency (MHz)")
         
-        display(fig)
+        # Plot a title if one is provided
+        if title != None:
+            plt.title(title)
+
+        # Save figure to file if selected
+        if save_to == None:
+            plt.show()
+        else:
+            plt.savefig(save_to)
         plt.close()
 
     # Title is a string for the whole plot
@@ -495,7 +503,7 @@ class Stamp(object):
             plt.savefig(save_to)
         plt.close()
 
-    def show_best_beam(self):
+    def show_best_beam(self, title=None, show_signal=False, save_to=None):
         beam = self.stamp.signal.beam
         if beam < 0:
             print("best beam is incoherent")
@@ -506,7 +514,7 @@ class Stamp(object):
         print("best beam is", beam)
         print(f"original power: {self.stamp.signal.power:e}")
         print("original SNR:", self.stamp.signal.snr)
-        self.show_beam(beam)
+        self.show_beam(beam, title, show_signal, save_to)
 
     def show_beams(self, title=None, show_signal=False, save_to=None):
         charts = []
